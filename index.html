@@ -1,0 +1,557 @@
+<title>UrduTVET Knowledge Graph</title>
+<style>
+  @import url('https://fonts.googleapis.com/css2?family=Big+Shoulders:wght@600;700;800&family=IBM+Plex+Sans:wght@400;500;600&family=IBM+Plex+Mono:wght@400;500&display=swap');
+
+  :root {
+    --paper: #f7f5ef;
+    --paper-line: #e4e0d2;
+    --ink: #1c2b1f;
+    --ink-dim: #4b5a4e;
+    --ink-faint: #8a9490;
+    --accent: #1c4d8f;
+    --accent-soft: #dce6f2;
+    --surface: #ffffff;
+    --surface-line: #d8d3c2;
+    --shadow: 0 1px 2px rgba(28,43,31,.06), 0 8px 24px rgba(28,43,31,.06);
+
+    --dom-plumbing: #2a78d6;
+    --dom-electrical: #eda100;
+    --dom-woodworking: #008300;
+    --dom-general: #e87ba4;
+    --dom-node: #8a8578;
+
+    --rel-isa: #1c4d8f;
+    --rel-partof: #b45309;
+    --rel-relatedto: #6b7280;
+    --rel-functionswith: #7a3ba8;
+  }
+
+  @media (prefers-color-scheme: dark) {
+    :root:not([data-theme="light"]) {
+      --paper: #0b1e33;
+      --paper-line: #16324f;
+      --ink: #eaf2fb;
+      --ink-dim: #a9c1d9;
+      --ink-faint: #5d7c98;
+      --accent: #5fb8e8;
+      --accent-soft: #123655;
+      --surface: #0e253d;
+      --surface-line: #1d4266;
+      --shadow: 0 1px 2px rgba(0,0,0,.3), 0 8px 28px rgba(0,0,0,.35);
+
+      --dom-plumbing: #3987e5;
+      --dom-electrical: #c98500;
+      --dom-woodworking: #008300;
+      --dom-general: #d55181;
+      --dom-node: #9fb3c8;
+
+      --rel-isa: #5fb8e8;
+      --rel-partof: #f0b673;
+      --rel-relatedto: #7f97ad;
+      --rel-functionswith: #c497e8;
+    }
+  }
+  :root[data-theme="dark"] {
+    --paper: #0b1e33;
+    --paper-line: #16324f;
+    --ink: #eaf2fb;
+    --ink-dim: #a9c1d9;
+    --ink-faint: #5d7c98;
+    --accent: #5fb8e8;
+    --accent-soft: #123655;
+    --surface: #0e253d;
+    --surface-line: #1d4266;
+    --shadow: 0 1px 2px rgba(0,0,0,.3), 0 8px 28px rgba(0,0,0,.35);
+
+    --dom-plumbing: #3987e5;
+    --dom-electrical: #c98500;
+    --dom-woodworking: #008300;
+    --dom-general: #d55181;
+    --dom-node: #9fb3c8;
+
+    --rel-isa: #5fb8e8;
+    --rel-partof: #f0b673;
+    --rel-relatedto: #7f97ad;
+    --rel-functionswith: #c497e8;
+  }
+
+  * { box-sizing: border-box; }
+  body {
+    margin: 0;
+    background: var(--paper);
+    color: var(--ink);
+    font-family: 'IBM Plex Sans', system-ui, sans-serif;
+    background-image:
+      linear-gradient(var(--paper-line) 1px, transparent 1px),
+      linear-gradient(90deg, var(--paper-line) 1px, transparent 1px);
+    background-size: 28px 28px;
+  }
+
+  #stage { position: relative; width: 100%; height: 100vh; min-height: 560px; overflow: hidden; }
+  canvas { position: absolute; inset: 0; width: 100%; height: 100%; display: block; cursor: grab; }
+  canvas.dragging { cursor: grabbing; }
+
+  header {
+    position: absolute; top: 16px; left: 16px; right: 16px;
+    display: flex; justify-content: space-between; align-items: flex-start;
+    gap: 12px; pointer-events: none; z-index: 5;
+  }
+  .titleblock {
+    pointer-events: auto;
+    background: var(--surface);
+    border: 1px solid var(--surface-line);
+    box-shadow: var(--shadow);
+    padding: 14px 18px;
+    max-width: 380px;
+  }
+  h1 {
+    font-family: 'Big Shoulders', sans-serif;
+    font-weight: 800;
+    font-size: 26px;
+    line-height: 1;
+    letter-spacing: .01em;
+    margin: 0 0 2px;
+    text-wrap: balance;
+    color: var(--ink);
+  }
+  .subtitle {
+    font-family: 'IBM Plex Mono', monospace;
+    font-size: 11px;
+    color: var(--ink-dim);
+    letter-spacing: .03em;
+    margin: 0 0 10px;
+  }
+  .stats-row {
+    display: flex; gap: 14px; flex-wrap: wrap;
+    border-top: 1px solid var(--surface-line);
+    padding-top: 8px; margin-top: 8px;
+  }
+  .stat { font-family: 'IBM Plex Mono', monospace; font-variant-numeric: tabular-nums; }
+  .stat b { display: block; font-size: 16px; color: var(--ink); line-height: 1.1; }
+  .stat span { font-size: 9px; color: var(--ink-faint); letter-spacing: .04em; text-transform: uppercase; }
+
+  .panel {
+    pointer-events: auto;
+    background: var(--surface);
+    border: 1px solid var(--surface-line);
+    box-shadow: var(--shadow);
+    padding: 12px 14px;
+    width: 240px;
+  }
+  .panel + .panel { margin-top: 10px; }
+  .panel h2 {
+    font-family: 'IBM Plex Mono', monospace;
+    font-size: 10px; letter-spacing: .08em; text-transform: uppercase;
+    color: var(--ink-faint); margin: 0 0 8px; font-weight: 500;
+  }
+  .toggle-row { display: flex; align-items: center; gap: 8px; padding: 4px 0; font-size: 13px; }
+  .toggle-row input { accent-color: var(--accent); width: 14px; height: 14px; }
+  .swatch { width: 10px; height: 10px; border-radius: 2px; flex: none; }
+  .line-swatch { width: 16px; height: 0; border-top-width: 2px; border-top-style: solid; flex: none; }
+
+  #search {
+    width: 100%; font-family: 'IBM Plex Mono', monospace; font-size: 13px;
+    padding: 7px 9px; border: 1px solid var(--surface-line);
+    background: var(--paper); color: var(--ink); outline: none;
+  }
+  #search:focus { border-color: var(--accent); }
+  #search::placeholder { color: var(--ink-faint); }
+
+  #results {
+    max-height: 160px; overflow-y: auto; margin-top: 6px;
+  }
+  .result-item {
+    font-size: 12.5px; padding: 5px 6px; cursor: pointer; display: flex;
+    align-items: center; gap: 6px; border-radius: 2px;
+  }
+  .result-item:hover { background: var(--accent-soft); }
+
+  #tooltip {
+    position: absolute; pointer-events: none; z-index: 10;
+    background: var(--surface); border: 1px solid var(--surface-line);
+    box-shadow: var(--shadow); padding: 8px 10px; font-size: 12.5px;
+    max-width: 260px; display: none; line-height: 1.4;
+  }
+  #tooltip .tt-label { font-weight: 600; color: var(--ink); }
+  #tooltip .tt-meta { font-family: 'IBM Plex Mono', monospace; font-size: 10.5px; color: var(--ink-dim); margin-top: 2px; }
+
+  footer {
+    position: absolute; bottom: 12px; left: 16px; right: 16px;
+    display: flex; justify-content: space-between; align-items: flex-end;
+    pointer-events: none; z-index: 5; gap: 12px; flex-wrap: wrap;
+  }
+  .hint {
+    font-family: 'IBM Plex Mono', monospace; font-size: 10.5px; color: var(--ink-faint);
+    background: var(--surface); border: 1px solid var(--surface-line);
+    padding: 5px 9px; pointer-events: auto; box-shadow: var(--shadow);
+  }
+
+  @media (max-width: 640px) {
+    header { flex-direction: column; }
+    .panel, .titleblock { width: 100%; max-width: none; }
+  }
+</style>
+
+<div id="stage">
+  <canvas id="graph"></canvas>
+  <div id="tooltip"></div>
+
+  <header>
+    <div class="titleblock">
+      <h1>UrduTVET Knowledge Graph</h1>
+      <p class="subtitle">DWG NO. KG&#8209;01 &nbsp;&middot;&nbsp; REV. A &nbsp;&middot;&nbsp; TERM RELATIONSHIP NETWORK</p>
+      <div class="stats-row">
+        <div class="stat"><b id="stat-nodes">&mdash;</b><span>nodes shown</span></div>
+        <div class="stat"><b id="stat-edges">&mdash;</b><span>edges shown</span></div>
+        <div class="stat"><b>1,042</b><span>glossary terms</span></div>
+      </div>
+    </div>
+
+    <div>
+      <div class="panel">
+        <h2>Find a term</h2>
+        <input id="search" type="text" placeholder="e.g. circuit breaker&hellip;" autocomplete="off" />
+        <div id="results"></div>
+      </div>
+    </div>
+  </header>
+
+  <footer>
+    <div style="display:flex; flex-direction:column; gap:10px;">
+      <div class="panel">
+        <h2>Domain</h2>
+        <div id="domain-toggles"></div>
+      </div>
+    </div>
+    <div style="display:flex; flex-direction:column; gap:10px; align-items:flex-end;">
+      <div class="panel">
+        <h2>Relationship</h2>
+        <div id="rel-toggles"></div>
+      </div>
+      <div class="hint">drag to pan &middot; scroll to zoom &middot; click a node to focus &middot; click empty space to release</div>
+    </div>
+  </footer>
+</div>
+
+<script src="https://cdnjs.cloudflare.com/ajax/libs/d3/7.9.0/d3.min.js"></script>
+<script>
+(function () {
+  "use strict";
+
+  const DOMAIN_COLOR = {
+    Plumbing: 'var(--dom-plumbing)',
+    Electrical: 'var(--dom-electrical)',
+    Woodworking: 'var(--dom-woodworking)',
+    General: 'var(--dom-general)',
+  };
+  const REL_COLOR = { 'IS-A': 'var(--rel-isa)', 'PART-OF': 'var(--rel-partof)', 'RELATED-TO': 'var(--rel-relatedto)', 'FUNCTIONS-WITH': 'var(--rel-functionswith)' };
+
+  function cssVar(name) {
+    return getComputedStyle(document.documentElement).getPropertyValue(name.replace('var(', '').replace(')', '')).trim() || name;
+  }
+  function resolveColor(v) {
+    if (v.startsWith('var(')) return cssVar(v);
+    return v;
+  }
+
+  const domainToggles = document.getElementById('domain-toggles');
+  const relToggles = document.getElementById('rel-toggles');
+  const activeDomains = new Set(Object.keys(DOMAIN_COLOR));
+  const activeRels = new Set(['IS-A', 'PART-OF']); // RELATED-TO off by default: dense, opt-in
+
+  Object.entries(DOMAIN_COLOR).forEach(([name, color]) => {
+    const row = document.createElement('label');
+    row.className = 'toggle-row';
+    row.innerHTML = `<input type="checkbox" checked data-domain="${name}"><span class="swatch" style="background:${resolveColor(color)}"></span>${name}`;
+    domainToggles.appendChild(row);
+  });
+  Object.entries(REL_COLOR).forEach(([name, color]) => {
+    const row = document.createElement('label');
+    row.className = 'toggle-row';
+    const checked = activeRels.has(name) ? 'checked' : '';
+    const dash = name === 'RELATED-TO' ? 'border-top-style:dashed;' : (name === 'PART-OF' ? 'border-top-style:dotted;' : (name === 'FUNCTIONS-WITH' ? 'border-top-style:double; border-top-width:3px;' : ''));
+    row.innerHTML = `<input type="checkbox" ${checked} data-rel="${name}"><span class="line-swatch" style="border-color:${resolveColor(color)};${dash}"></span>${name}`;
+    relToggles.appendChild(row);
+  });
+
+  const canvas = document.getElementById('graph');
+  const ctx = canvas.getContext('2d');
+  const stage = document.getElementById('stage');
+  const tooltip = document.getElementById('tooltip');
+  let width, height, dpr;
+
+  function resize() {
+    dpr = window.devicePixelRatio || 1;
+    width = stage.clientWidth;
+    height = stage.clientHeight;
+    canvas.width = width * dpr;
+    canvas.height = height * dpr;
+    ctx.setTransform(dpr, 0, 0, dpr, 0, 0);
+  }
+  resize();
+  window.addEventListener('resize', () => { resize(); draw(); });
+
+  let graphData = null, simulation = null;
+  let transform = d3.zoomIdentity;
+  let focusNode = null;
+  let hoverNode = null;
+
+  fetch('kg_data.json').then(r => r.json()).then(data => {
+    graphData = data;
+    init(data);
+  });
+
+  function visibleNodes() {
+    return graphData.nodes.filter(n => {
+      if (n.kind === 'term') return activeDomains.has(n.domain);
+      if (n.kind === 'category') return activeRels.has('IS-A') && activeDomains.has(n.domain);
+      if (n.kind === 'subdomain' || n.kind === 'domain') return activeRels.has('PART-OF') && activeDomains.has(n.domain);
+      return true;
+    });
+  }
+  function visibleEdges(nodeSet) {
+    return graphData.edges.filter(e => activeRels.has(e.type) && nodeSet.has(e.source.id || e.source) && nodeSet.has(e.target.id || e.target));
+  }
+
+  function init(data) {
+    const nodeById = new Map(data.nodes.map(n => [n.id, n]));
+    data.edges.forEach(e => { e.source = nodeById.get(e.source); e.target = nodeById.get(e.target); });
+    rebuild();
+  }
+
+  function rebuild() {
+    const nodes = visibleNodes();
+    const nodeSet = new Set(nodes.map(n => n.id));
+    const edges = visibleEdges(nodeSet);
+
+    document.getElementById('stat-nodes').textContent = nodes.length.toLocaleString();
+    document.getElementById('stat-edges').textContent = edges.length.toLocaleString();
+
+    if (simulation) simulation.stop();
+
+    // Cap simulated bodies for performance if RELATED-TO floods the graph; keep highest-degree terms.
+    let simNodes = nodes;
+    if (nodes.length > 1400) {
+      simNodes = [...nodes].sort((a, b) => b.degree - a.degree).slice(0, 1400);
+    }
+    const simSet = new Set(simNodes.map(n => n.id));
+    const simEdges = edges.filter(e => simSet.has(e.source.id) && simSet.has(e.target.id));
+
+    simulation = d3.forceSimulation(simNodes)
+      .force('link', d3.forceLink(simEdges).id(d => d.id).distance(d => d.type === 'PART-OF' ? 60 : 34).strength(0.35))
+      .force('charge', d3.forceManyBody().strength(d => d.kind === 'term' ? -22 : -60))
+      .force('center', d3.forceCenter(0, 0))
+      .force('collide', d3.forceCollide(d => nodeRadius(d) + 2))
+      .alpha(1).alphaDecay(0.02)
+      .on('tick', draw);
+
+    graphData._current = { nodes: simNodes, edges: simEdges };
+  }
+
+  function nodeRadius(d) {
+    if (d.kind === 'domain') return 11;
+    if (d.kind === 'subdomain') return 7;
+    if (d.kind === 'category') return 4.5;
+    return Math.min(3 + Math.sqrt(d.degree) * 1.1, 9);
+  }
+  function nodeColor(d) {
+    if (d.kind === 'domain' || d.kind === 'subdomain') return resolveColor('var(--dom-node)');
+    return resolveColor(DOMAIN_COLOR[d.domain] || 'var(--dom-node)');
+  }
+
+  function draw() {
+    if (!graphData || !graphData._current) return;
+    const { nodes, edges } = graphData._current;
+    ctx.save();
+    ctx.clearRect(0, 0, width, height);
+    ctx.translate(width / 2 + transform.x, height / 2 + transform.y);
+    ctx.scale(transform.k, transform.k);
+
+    const neighbors = focusNode ? neighborSet(focusNode) : null;
+
+    // edges
+    edges.forEach(e => {
+      const dim = neighbors && !(neighbors.has(e.source.id) && neighbors.has(e.target.id));
+      ctx.beginPath();
+      ctx.moveTo(e.source.x, e.source.y);
+      ctx.lineTo(e.target.x, e.target.y);
+      ctx.strokeStyle = resolveColor(REL_COLOR[e.type]);
+      ctx.globalAlpha = dim ? 0.05 : (e.type === 'RELATED-TO' ? 0.22 : (e.type === 'FUNCTIONS-WITH' ? 0.3 : 0.4));
+      ctx.lineWidth = 1 / transform.k;
+      if (e.type === 'PART-OF') ctx.setLineDash([1 / transform.k, 3 / transform.k]);
+      else if (e.type === 'RELATED-TO') ctx.setLineDash([4 / transform.k, 3 / transform.k]);
+      else if (e.type === 'FUNCTIONS-WITH') ctx.setLineDash([6 / transform.k, 2 / transform.k, 1 / transform.k, 2 / transform.k]);
+      else ctx.setLineDash([]);
+      ctx.stroke();
+    });
+    ctx.setLineDash([]);
+
+    // nodes
+    nodes.forEach(n => {
+      const dim = neighbors && !neighbors.has(n.id);
+      const r = nodeRadius(n);
+      ctx.globalAlpha = dim ? 0.15 : 1;
+      ctx.beginPath();
+      ctx.arc(n.x, n.y, r, 0, Math.PI * 2);
+      ctx.fillStyle = nodeColor(n);
+      ctx.fill();
+      if (n.kind !== 'term') {
+        ctx.lineWidth = 1.5 / transform.k;
+        ctx.strokeStyle = resolveColor('--surface');
+        ctx.stroke();
+      }
+      if ((n.kind === 'domain' || n.kind === 'subdomain') && transform.k > 0.55 && !dim) {
+        ctx.globalAlpha = dim ? 0.15 : 0.9;
+        ctx.fillStyle = resolveColor('--ink');
+        ctx.font = `${n.kind === 'domain' ? 600 : 500} ${11 / transform.k}px 'IBM Plex Sans', sans-serif`;
+        ctx.textAlign = 'center';
+        ctx.fillText(n.label, n.x, n.y - r - 4 / transform.k);
+      }
+    });
+    ctx.globalAlpha = 1;
+    ctx.restore();
+  }
+
+  function neighborSet(node) {
+    const set = new Set([node.id]);
+    graphData._current.edges.forEach(e => {
+      if (e.source.id === node.id) set.add(e.target.id);
+      if (e.target.id === node.id) set.add(e.source.id);
+    });
+    return set;
+  }
+
+  function screenToWorld(px, py) {
+    return { x: (px - width / 2 - transform.x) / transform.k, y: (py - height / 2 - transform.y) / transform.k };
+  }
+  function nodeAt(px, py) {
+    if (!graphData._current) return null;
+    const w = screenToWorld(px, py);
+    let best = null, bestD = Infinity;
+    for (const n of graphData._current.nodes) {
+      const r = nodeRadius(n) + 2;
+      const d = (n.x - w.x) ** 2 + (n.y - w.y) ** 2;
+      if (d < r * r && d < bestD) { best = n; bestD = d; }
+    }
+    return best;
+  }
+
+  let dragging = null, dragStart = null, moved = false;
+  canvas.addEventListener('pointerdown', (ev) => {
+    const rect = canvas.getBoundingClientRect();
+    const px = ev.clientX - rect.left, py = ev.clientY - rect.top;
+    const hit = nodeAt(px, py);
+    moved = false;
+    if (hit) {
+      dragging = hit;
+      hit.fx = hit.x; hit.fy = hit.y;
+      simulation.alphaTarget(0.15).restart();
+    } else {
+      dragStart = { x: ev.clientX, y: ev.clientY, tx: transform.x, ty: transform.y };
+    }
+    canvas.classList.add('dragging');
+    canvas.setPointerCapture(ev.pointerId);
+  });
+  canvas.addEventListener('pointermove', (ev) => {
+    const rect = canvas.getBoundingClientRect();
+    const px = ev.clientX - rect.left, py = ev.clientY - rect.top;
+    if (dragging) {
+      moved = true;
+      const w = screenToWorld(px, py);
+      dragging.fx = w.x; dragging.fy = w.y;
+    } else if (dragStart) {
+      moved = true;
+      transform = d3.zoomIdentity.translate(dragStart.tx + (ev.clientX - dragStart.x), dragStart.ty + (ev.clientY - dragStart.y)).scale(transform.k);
+      draw();
+    } else {
+      const hit = nodeAt(px, py);
+      if (hit !== hoverNode) {
+        hoverNode = hit;
+        if (hit) {
+          tooltip.style.display = 'block';
+          tooltip.style.left = (px + 14) + 'px';
+          tooltip.style.top = (py + 10) + 'px';
+          const kindLabel = { term: 'Glossary term', category: 'IS-A category', subdomain: 'Sub-domain', domain: 'Domain' }[hit.kind];
+          tooltip.innerHTML = `<div class="tt-label">${hit.label}</div><div class="tt-meta">${kindLabel}${hit.domain ? ' &middot; ' + hit.domain : ''} &middot; degree ${hit.degree}</div>`;
+        } else {
+          tooltip.style.display = 'none';
+        }
+      } else if (hit) {
+        tooltip.style.left = (px + 14) + 'px';
+        tooltip.style.top = (py + 10) + 'px';
+      }
+    }
+  });
+  canvas.addEventListener('pointerup', (ev) => {
+    if (dragging) {
+      dragging.fx = null; dragging.fy = null;
+      simulation.alphaTarget(0);
+      if (!moved) focusOn(dragging);
+      dragging = null;
+    } else if (!moved) {
+      focusOn(null);
+    }
+    dragStart = null;
+    canvas.classList.remove('dragging');
+  });
+
+  canvas.addEventListener('wheel', (ev) => {
+    ev.preventDefault();
+    const rect = canvas.getBoundingClientRect();
+    const px = ev.clientX - rect.left, py = ev.clientY - rect.top;
+    const before = screenToWorld(px, py);
+    const factor = Math.exp(-ev.deltaY * 0.0016);
+    transform = d3.zoomIdentity.translate(transform.x, transform.y).scale(Math.max(0.15, Math.min(6, transform.k * factor)));
+    const after = screenToWorld(px, py);
+    transform = d3.zoomIdentity.translate(transform.x + (after.x - before.x) * transform.k, transform.y + (after.y - before.y) * transform.k).scale(transform.k);
+    draw();
+  }, { passive: false });
+
+  function focusOn(node) {
+    focusNode = node;
+    draw();
+  }
+
+  // ---- Search ----
+  const searchInput = document.getElementById('search');
+  const resultsEl = document.getElementById('results');
+  searchInput.addEventListener('input', () => {
+    const q = searchInput.value.trim().toLowerCase();
+    resultsEl.innerHTML = '';
+    if (!q || !graphData) return;
+    const matches = graphData.nodes.filter(n => n.kind === 'term' && n.label.toLowerCase().includes(q)).slice(0, 12);
+    matches.forEach(n => {
+      const row = document.createElement('div');
+      row.className = 'result-item';
+      row.innerHTML = `<span class="swatch" style="background:${resolveColor(DOMAIN_COLOR[n.domain] || 'var(--dom-node)')}"></span>${n.label}`;
+      row.addEventListener('click', () => {
+        if (!activeDomains.has(n.domain)) return;
+        const found = graphData._current.nodes.find(x => x.id === n.id);
+        if (found) {
+          transform = d3.zoomIdentity.translate(-found.x * 1.6, -found.y * 1.6).scale(1.6);
+          focusOn(found);
+        }
+      });
+      resultsEl.appendChild(row);
+    });
+  });
+
+  // ---- Toggles ----
+  document.querySelectorAll('[data-domain]').forEach(cb => {
+    cb.addEventListener('change', () => {
+      const d = cb.getAttribute('data-domain');
+      if (cb.checked) activeDomains.add(d); else activeDomains.delete(d);
+      focusNode = null;
+      rebuild();
+    });
+  });
+  document.querySelectorAll('[data-rel]').forEach(cb => {
+    cb.addEventListener('change', () => {
+      const r = cb.getAttribute('data-rel');
+      if (cb.checked) activeRels.add(r); else activeRels.delete(r);
+      focusNode = null;
+      rebuild();
+    });
+  });
+})();
+</script>
